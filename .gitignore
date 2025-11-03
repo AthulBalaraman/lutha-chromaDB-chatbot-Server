@@ -1,0 +1,15 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Environment
+.env
+venv/
+env/
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# FastAPI/Uvicorn specific
+.uvicorn_reload_temp/
