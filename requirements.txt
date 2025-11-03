@@ -7,3 +7,5 @@ pypdf
 python-multipart
 langchain-google-genai
 langchain-community
+pymupdf
+python-dotenv

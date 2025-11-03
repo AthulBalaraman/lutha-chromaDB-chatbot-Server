@@ -66,15 +66,7 @@ def startup_event():
     
     # 3. Pre-load a mock document for immediate testing (optional, can be removed for production)
     if not VECTOR_STORE.get().get('ids'): # Check if the collection is empty
-        logger.info("No existing documents found in vector store. Pre-loading mock document.")
-        mock_content = "The Q3 financial results showed a 12% growth in revenue, primarily driven by the new product line. The CEO, Jane Doe, mentioned that the company is on track to exceed its annual targets. The full report will be released next week."
-        mock_doc = Document(page_content=mock_content, metadata={"source": "Q3 Financial Report (Page 12)"})
-        
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=20)
-        chunks = text_splitter.split_documents([mock_doc])
-        
-        VECTOR_STORE.add_documents(chunks)
-        logger.info("Mock document pre-loaded into ChromaDB.")
+        logger.info("No existing documents found in vector store. No mock document to pre-load.")
     else:
         logger.info("Existing documents found in vector store. Skipping mock document loading.")
 
@@ -84,7 +76,7 @@ def startup_event():
 class UploadResponse(BaseModel):
     status: str
     message: str
-    chunks_processed: int
+    files_processed: int
 
 class StatusResponse(BaseModel):
     status: str
@@ -127,6 +119,8 @@ async def upload_document(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Only .txt and .pdf files are supported.")
 
         documents = loader.load()
+        for doc in documents:
+            doc.metadata["source"] = file.filename
         logger.info(f"Loaded {len(documents)} documents from file.")
 
         # 2. Split the document into chunks
@@ -141,7 +135,7 @@ async def upload_document(file: UploadFile = File(...)):
         return UploadResponse(
             status="success",
             message="Document indexed successfully.",
-            chunks_processed=len(chunks)
+            files_processed=1
         )
     except Exception as e:
         logger.error(f"Error processing document upload: {e}", exc_info=True)
@@ -156,7 +150,9 @@ async def upload_document(file: UploadFile = File(...)):
 def get_status():
     logger.info("Received request for indexing status.")
     try:
-        indexed_count = len(VECTOR_STORE.get(include=["documents"])["ids"])
+        metadatas = VECTOR_STORE.get(include=["metadatas"])["metadatas"]
+        unique_sources = set(m["source"] for m in metadatas)
+        indexed_count = len(unique_sources)
         logger.info(f"Current indexed document count: {indexed_count}")
         status = "ready"
     except Exception as e:
@@ -190,6 +186,9 @@ def get_documents():
             for metadata in retrieved_data["metadatas"]:
                 source = metadata.get("source")
                 if source:
+                    # Remove the temporary directory prefix if it exists
+                    if "temp_docs" in source:
+                        source = os.path.basename(source)
                     unique_sources.add(source)
         
         # Convert the set of unique sources to the desired response format
@@ -247,6 +246,9 @@ async def chat_with_rag(query: ChatQuery):
         sources = []
         for doc in retrieved_docs:
             source_title = doc.metadata.get("source", doc.metadata.get("file_name", "Unknown Document"))
+            # Remove the temporary directory prefix if it exists
+            if "temp_docs" in source_title:
+                source_title = os.path.basename(source_title)
             # You might want to parse page numbers from metadata if available from PDF loader
             if "page" in doc.metadata:
                 source_title += f" (Page {doc.metadata['page'] + 1})"
