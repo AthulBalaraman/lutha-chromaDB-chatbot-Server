@@ -219,7 +219,7 @@ async def chat_with_rag(query: ChatQuery):
     # Mock LLM setup (replace with actual LLM if API key is available)
     # For demonstration, we'll use a simple mock or a placeholder.
     # If you have an OpenAI API key, you can use: llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
-    llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0) # Placeholder, requires GOOGLE_API_KEY in .env
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0) # Placeholder, requires GOOGLE_API_KEY in .env
 
     template = """You are an assistant for question-answering tasks. 
     Use the following pieces of retrieved context to answer the question. 
