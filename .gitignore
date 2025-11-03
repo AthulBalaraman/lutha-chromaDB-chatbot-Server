@@ -13,3 +13,5 @@ env/
 
 # FastAPI/Uvicorn specific
 .uvicorn_reload_temp/
+
+chroma_db/
